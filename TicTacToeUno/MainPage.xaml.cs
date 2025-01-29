@@ -1,42 +1,106 @@
-using System.Drawing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Options;
 using Microsoft.UI;
-using System;
-using Microsoft.UI.Xaml.Controls;
-using System.Reflection;
 
 namespace TicTacToeUno;
 
-public partial class MainPage : Page
+public sealed partial class MainPage : Page
 {
     private HubConnection connection;
+    Dictionary<string, Button> dict = new Dictionary<string, Button>();
 
     public MainPage()
     {
         this.InitializeComponent();
-        connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:7064/gamehub")
-                .Build();
-
-        connection.Closed += async (error) =>
+        try
         {
-            System.Threading.Thread.Sleep(5000);
-            await connection.StartAsync();
-        };
+        #if __ANDROID__
+            string url = "https://10.0.2.2:7064/GameHub";
+        #else
+            string url = "https://localhost:7064/gamehub";
+        #endif
+            connection = new HubConnectionBuilder()
+            #if __ANDROID__
+                    .WithUrl(url, options =>
+                    {
+                        options.HttpMessageHandlerFactory = (handler) =>
+                        {
+                            // Игнорируем проверку сертификата для самоподписанного сертификата (только для разработки)
+                            if (handler is HttpClientHandler clientHandler)
+                            {
+                                clientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true;
+                            }
+                            return handler;
+                        };
+                    })
+            #else
+                    .WithUrl(url)
+            #endif
+                    //.WithAutomaticReconnect()
+                    .Build();
+            
+            connection.Closed += async (error) =>
+            {
+                System.Threading.Thread.Sleep(5000);
+                await connection.StartAsync();
+            };
+        }
+        catch (Exception ex)
+        {
+            listBox1.Items.Add("Ошибка при создании подключения - " + ex.Message);
+        }
+        dict["btnCell0"] = btnCell0;
+        dict["btnCell1"] = btnCell1;
+        dict["btnCell2"] = btnCell2;
+        dict["btnCell3"] = btnCell3;
+        dict["btnCell4"] = btnCell4;
+        dict["btnCell5"] = btnCell5;
+        dict["btnCell6"] = btnCell6;
+        dict["btnCell7"] = btnCell7;
+        dict["btnCell8"] = btnCell8;
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
+
         try
         {
             await connection.StartAsync();
             listBox1.Items.Add(connection.State);
+            if (connection?.State == HubConnectionState.Connected)
+            {
+                textBox1.IsEnabled = true;
+                SendBtn.IsEnabled = true;
+                SendBtn.Click += SendBtn_Click;
+            }
         }
         catch (Exception ex)
         {
             listBox1.Items.Add(connection.State);
-            listBox1.Items.Add(ex.Message);
-        }
+            listBox1.Items.Add("Ошибка при установке соединения - " + ex.Message);
+            while (connection?.State != HubConnectionState.Connected)
+            {
+                System.Threading.Thread.Sleep(5000);
+                try
+                {
+                    await connection.StartAsync();
+                    listBox1.Items.Add(connection.State);
+                }
+                catch
+                {
+                    listBox1.Items.Add("Повторная попытка подключения");                    
+                }
+            }
+            
+            if (connection.State == HubConnectionState.Connected)
+            {
+                textBox1.IsEnabled = true;
+                SendBtn.IsEnabled = true;
+                SendBtn.Click += SendBtn_Click;
+                listBox1.Items.Add(connection.State);
+            }
+            
+        }        
 
         connection.On<string>("ReceiveMessage", message =>
         {
@@ -56,7 +120,8 @@ public partial class MainPage : Page
 
                 for (int i = 0; i < 9; i++)
                 {
-                    var btnCell = FindControl<Button>(this, $"btnCell{i}");
+                    var btnCell = dict[$"btnCell{i}"];
+                    //var btnCell = FindControl<Button>(this, $"btnCell{i}");
                     if (btnCell != null)
                     {
                         btnCell.Background = new SolidColorBrush(Colors.LightGray);
@@ -72,10 +137,9 @@ public partial class MainPage : Page
             DispatcherQueue.TryEnqueue(() =>
             {
                 textBox1.IsEnabled = false;
-                var sendBtn = FindControl<Button>(this, "SendBtn");
-                sendBtn.Click -= SendBtn_Click;
-                sendBtn.Click += ExitBtn_Click;
-                sendBtn.Content = "Выйти";
+                SendBtn.Click -= SendBtn_Click;
+                SendBtn.Click += ExitBtn_Click;
+                SendBtn.Content = "Выйти";
             });
         });
 
@@ -84,10 +148,9 @@ public partial class MainPage : Page
             DispatcherQueue.TryEnqueue(() =>
             {
                 textBox1.IsEnabled = true;
-                var sendBtn = FindControl<Button>(this, "SendBtn");
-                sendBtn.Click -= ExitBtn_Click;
-                sendBtn.Click += SendBtn_Click;
-                sendBtn.Content = "Присоединиться";
+                SendBtn.Click -= ExitBtn_Click;
+                SendBtn.Click += SendBtn_Click;
+                SendBtn.Content = "Присоединиться";
             });
         });
 
@@ -127,13 +190,13 @@ public partial class MainPage : Page
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                listBox1.Items.Add(listBox1.Items.Count +". "+ message);
+                listBox1.Items.Add(listBox1.Items.Count + ". " + message);
                 listBox1.ScrollIntoView(listBox1.Items[listBox1.Items.Count - 1]);
                 EndGame();
             });
         });
     }
-    
+
     public static T FindControl<T>(UIElement parent, string ControlName) where T : FrameworkElement
     {
         if (parent == null)
@@ -159,7 +222,7 @@ public partial class MainPage : Page
         }
         return result;
     }
-    
+
 
     private async void btnCell_Click(object sender, RoutedEventArgs e)
     {
@@ -173,7 +236,8 @@ public partial class MainPage : Page
     {
         for (int i = 0; i < 9; i++)
         {
-            var button =  FindControl<Button>(this, $"btnCell{i}");
+            var button = dict[$"btnCell{i}"];
+            //var button = FindControl<Button>(this, $"btnCell{i}");
             if (button != null)
             {
                 button.IsEnabled = false;
@@ -196,7 +260,8 @@ public partial class MainPage : Page
     {
         for (int i = 0; i < 9; i++)
         {
-            var button = FindControl<Button>(this, $"btnCell{i}");
+            var button = dict[$"btnCell{i}"];
+            //var button = FindControl<Button>(this, $"btnCell{i}");
             if (button != null)
             {
                 button.Content = board[i] ?? "";
@@ -222,7 +287,8 @@ public partial class MainPage : Page
         // Обновите кнопки на форме в зависимости от состояния игрового поля
         for (int i = 0; i < 9; i++)
         {
-            var button = FindControl<Button>(this, $"btnCell{i}");
+            var button = dict[$"btnCell{i}"];
+            //var button = FindControl<Button>(this, $"btnCell{i}");
             if (button != null)
             {
                 button.Content = board[i] ?? "";
@@ -247,7 +313,8 @@ public partial class MainPage : Page
     {
         for (int i = 0; i < 9; i++)
         {
-            var button = FindControl<Button>(this, $"btnCell{i}");
+            var button = dict[$"btnCell{i}"];
+            //var button = FindControl<Button>(this, $"btnCell{i}");
             if (button != null)
             {
                 button.Content = "";
@@ -283,5 +350,5 @@ public partial class MainPage : Page
             listBox1.Items.Add(listBox1.Items.Count + ". " + ex.Message);
             listBox1.ScrollIntoView(listBox1.Items[listBox1.Items.Count - 1]);
         }
-    }
+    }    
 }

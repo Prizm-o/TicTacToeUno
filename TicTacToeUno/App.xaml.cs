@@ -1,7 +1,10 @@
 using System;
 using Microsoft.Extensions.Logging;
-using Microsoft.UI.Xaml;
 using Uno.Resizetizer;
+using Windows.UI.ViewManagement;
+using Windows.Foundation;
+using Windows.ApplicationModel.Core;
+using Microsoft.UI.Xaml;
 
 namespace TicTacToeUno;
 public partial class App : Application
@@ -13,28 +16,33 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
+
+#if HAS_UNO || NETFX_CORE
+        this.Suspending += OnSuspending;
+#endif    
     }
 
     protected Window? MainWindow { get; private set; }
 
+    private void OnSuspending(object sender, SuspendingEventArgs e)
+    {
+        var deferral = e.SuspendingOperation.GetDeferral();
+        //TODO: Save application state and stop any background activity
+        deferral.Complete();
+    }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         MainWindow = new Window();
-
-        //Изменеие размеров окна при запуске
-        IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
-        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
-        var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-        appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 550, Height = 550 });
 #if DEBUG
         MainWindow.UseStudio();
 #endif
+
 
         // Do not repeat app initialization when the Window already has content,
         // just ensure that the window is active
         if (MainWindow.Content is not Frame rootFrame)
         {
-            
             // Create a Frame to act as the navigation context and navigate to the first page
             rootFrame = new Frame();
 
@@ -51,10 +59,15 @@ public partial class App : Application
             // parameter
             rootFrame.Navigate(typeof(MainPage), args.Arguments);
         }
-      
+
         MainWindow.SetWindowIcon();
         // Ensure the current window is active
         MainWindow.Activate();
+
+        Windows.Graphics.SizeInt32 size = new Windows.Graphics.SizeInt32();
+        size.Width = 450;
+        size.Height = 600;
+        MainWindow.AppWindow.Resize(size);
     }
 
     /// <summary>

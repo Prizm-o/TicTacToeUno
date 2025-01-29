@@ -1,6 +1,6 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows10.0.26100</TargetFrameworks>
+    <TargetFrameworks>net8.0-android;net8.0-windows10.0.26100;net8.0-browserwasm;net8.0-desktop</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
@@ -13,7 +13,7 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <!-- Package Publisher -->
-    <ApplicationPublisher>Александр Ф</ApplicationPublisher>
+    <ApplicationPublisher>AlexF</ApplicationPublisher>
     <!-- Package Description -->
     <Description>TicTacToeUno powered by Uno Platform.</Description>
     <!--
@@ -37,6 +37,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Platform-Tools" />
+    <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
 
 </Project>

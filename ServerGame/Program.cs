@@ -1,5 +1,23 @@
 using ServerGame.Hubs;
 
+namespace ServerGame
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            CreateHostBuilder(args).Build().Run();
+        }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
+    }
+}
+/*
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -16,17 +34,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
 app.UseAuthorization();
 
-/*app.MapControllerRoute(
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-*/
+
 
 app.UseRouting();
 
@@ -34,5 +52,6 @@ app.MapControllers();
 app.MapHub<GameHub>("/gamehub");
 
 app.Run();
+*/
 
 
