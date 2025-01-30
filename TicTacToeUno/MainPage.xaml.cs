@@ -14,11 +14,11 @@ public sealed partial class MainPage : Page
         this.InitializeComponent();
         try
         {
-        #if __ANDROID__
-            string url = "https://10.0.2.2:7064/GameHub";
-        #else
-            string url = "https://localhost:7064/gamehub";
-        #endif
+#if __ANDROID__
+            string url = "https://192.168.9.41:7064/gamehub";
+#else
+            string url = "http://192.168.9.41:5046/gamehub";
+#endif
             connection = new HubConnectionBuilder()
             #if __ANDROID__
                     .WithUrl(url, options =>
@@ -36,7 +36,7 @@ public sealed partial class MainPage : Page
             #else
                     .WithUrl(url)
             #endif
-                    //.WithAutomaticReconnect()
+                    .WithAutomaticReconnect()
                     .Build();
             
             connection.Closed += async (error) =>
@@ -62,7 +62,7 @@ public sealed partial class MainPage : Page
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
-
+        listBox1.BorderBrush = new SolidColorBrush(Colors.Red);
         try
         {
             await connection.StartAsync();
@@ -99,7 +99,6 @@ public sealed partial class MainPage : Page
                 SendBtn.Click += SendBtn_Click;
                 listBox1.Items.Add(connection.State);
             }
-            
         }        
 
         connection.On<string>("ReceiveMessage", message =>
